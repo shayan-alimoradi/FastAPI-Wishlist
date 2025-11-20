@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS = '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'
+        GIT_CREDENTIALS = 'e0bb58e4-5341-44e1-9284-0c06c3862247'
         COMPOSE_PROJECT_NAME = "fastapi_project"
     }
 
