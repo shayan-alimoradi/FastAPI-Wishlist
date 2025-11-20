@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        GIT_CREDENTIALS = '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'
         COMPOSE_PROJECT_NAME = "fastapi_project"
     }
 
@@ -10,6 +11,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
+                    credentialsId: env.GIT_CREDENTIALS,
                     url: 'https://github.com/shayan-alimoradi/FastAPI-Wishlist'
             }
         }
