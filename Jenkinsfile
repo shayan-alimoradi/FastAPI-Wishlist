@@ -26,13 +26,15 @@ pipeline {
 
         stage('Build & Deploy') {
             steps {
-                sh """
-                cd ${WORKSPACE}
-                docker-compose -f docker-compose.yml down || true
-                docker-compose -f docker-compose.yml pull || true
+                // Make sure env vars are available
+                sh '''
+                if [ -f $DOTENV ]; then
+                    export $(grep -v '^#' $DOTENV | xargs)
+                fi
+                docker-compose -f docker-compose.yml pull
                 docker-compose -f docker-compose.yml build
                 docker-compose -f docker-compose.yml up -d
-                """
+                '''
             }
         }
     }
