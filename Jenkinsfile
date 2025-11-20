@@ -27,9 +27,11 @@ pipeline {
         stage('Build & Deploy') {
             steps {
                 sh """
-                docker-compose pull || true
-                docker-compose build
-                docker-compose up -d
+                cd ${WORKSPACE}
+                docker-compose -f docker-compose.yml down || true
+                docker-compose -f docker-compose.yml pull || true
+                docker-compose -f docker-compose.yml build
+                docker-compose -f docker-compose.yml up -d
                 """
             }
         }
