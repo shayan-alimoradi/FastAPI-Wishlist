@@ -26,7 +26,7 @@ services:
       - main
 
   jenkins:
-    image: jenkins/jenkins:jenkins-docker
+    image: jenkins/jenkins:jdk21
     user: root
     privileged: true
     ports:
