@@ -8,6 +8,18 @@ pipeline {
 
     stages {
 
+        stage('Verify Tooling') {
+            steps {
+                sh '''
+                    docker version
+                    docker info
+                    docker compose version
+                    curl --version
+                    jq --version
+                '''
+            }
+        }
+
         stage('Clone Repository') {
             steps {
                 git branch: 'master',
