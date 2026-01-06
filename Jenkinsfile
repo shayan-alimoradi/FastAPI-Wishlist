@@ -2,58 +2,62 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS = 'github-token'
-        COMPOSE_PROJECT_NAME = "fastapi_project"
+        REGISTRY = "ghcr.io"
+        IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
+        IMAGE_TAG = "latest"
+        FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
 
-        stage('Verify Tooling') {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'ghcr-creds',
+                    usernameVariable: 'GH_USER',
+                    passwordVariable: 'GH_TOKEN'
+                )]) {
+                    sh '''
+                      echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Build Image') {
             steps {
                 sh '''
-                    docker version
-                    docker info
+                  docker build -t $FULL_IMAGE ./app
                 '''
             }
         }
 
-        stage('Clone Repository') {
+        stage('Push Image') {
             steps {
-                git branch: 'master',
-                    credentialsId: env.GIT_CREDENTIALS,
-                    url: 'https://github.com/shayan-alimoradi/FastAPI-Wishlist'
-            }
-        }
-
-        stage('Stop Old Containers') {
-            steps {
-                sh """
-                docker-compose down || true
-                """
-            }
-        }
-
-        stage('Build & Deploy') {
-            steps {
-                // Make sure env vars are available
                 sh '''
-                if [ -f $DOTENV ]; then
-                    export $(grep -v '^#' $DOTENV | xargs)
-                fi
-                docker-compose -f docker-compose.yml pull
-                docker-compose -f docker-compose.yml build
-                docker-compose -f docker-compose.yml up -d
+                  docker push $FULL_IMAGE
                 '''
             }
         }
-    }
 
-    post {
-        success {
-            echo "🚀 Deployment completed successfully!"
-        }
-        failure {
-            echo "❌ Deployment failed!"
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(
+                    credentialsId: 'kubeconfig',
+                    variable: 'KUBECONFIG'
+                )]) {
+                    sh '''
+                      export KUBECONFIG=$KUBECONFIG
+                      kubectl rollout restart deployment fastapi
+                    '''
+                }
+            }
         }
     }
 }
