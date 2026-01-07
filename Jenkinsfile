@@ -54,7 +54,9 @@ pipeline {
                 )]) {
                     sh '''
                       export KUBECONFIG=$KUBECONFIG
-                      kubectl rollout restart deployment fastapi
+                      echo "Updating deployment with new image..."
+                      kubectl set image deployment/fastapi fastapi=$FULL_IMAGE
+                      kubectl rollout status deployment/fastapi
                     '''
                 }
             }
