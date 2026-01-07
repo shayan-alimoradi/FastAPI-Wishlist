@@ -4,7 +4,7 @@ pipeline {
     environment {
         REGISTRY = "ghcr.io"
         IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG = "${GIT_COMMIT}"
         FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
