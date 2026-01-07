@@ -8,7 +8,7 @@ from carts.api.v1 import router as carts_router
 from orders.api.v1 import router as orders_router
 
 
-app = FastAPI(version="1.0.0")
+app = FastAPI(version="1.0.1")
 app.include_router(users_router)
 app.include_router(authentication_router)
 app.include_router(products_router)
