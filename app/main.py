@@ -15,3 +15,8 @@ app.include_router(products_router)
 app.include_router(comments_router)
 app.include_router(carts_router)
 app.include_router(orders_router)
+
+
+@app.get("/health", tags=["health"])
+def health():
+    return {"status": "ok"}
