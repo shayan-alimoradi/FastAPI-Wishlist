@@ -53,9 +53,12 @@ pipeline {
                     variable: 'KUBECONFIG'
                 )]) {
                     sh '''
+                      export PATH=$PATH:/usr/local/bin
                       export KUBECONFIG=$KUBECONFIG
+
                       echo "Updating deployment with new image..."
                       kubectl set image deployment/fastapi fastapi=$FULL_IMAGE
+                      echo "Waiting for rollout to complete..."
                       kubectl rollout status deployment/fastapi
                     '''
                 }
