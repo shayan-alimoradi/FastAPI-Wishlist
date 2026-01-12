@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from users.api.v1 import router as users_router
 from users.authentication import router as authentication_router
@@ -15,6 +16,11 @@ app.include_router(products_router)
 app.include_router(comments_router)
 app.include_router(carts_router)
 app.include_router(orders_router)
+
+
+@app.on_event("startup")
+async def startup():
+    Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health", tags=["health"])
