@@ -10,17 +10,15 @@ from orders.api.v1 import router as orders_router
 
 
 app = FastAPI(version="1.0.2")
+
+Instrumentator().instrument(app).expose(app)
+
 app.include_router(users_router)
 app.include_router(authentication_router)
 app.include_router(products_router)
 app.include_router(comments_router)
 app.include_router(carts_router)
 app.include_router(orders_router)
-
-
-@app.on_event("startup")
-async def startup():
-    Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health", tags=["health"])
