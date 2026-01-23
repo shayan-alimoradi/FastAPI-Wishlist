@@ -91,7 +91,7 @@ pipeline {
                       echo "🚀 Deploying to namespace: $NAMESPACE"
                       kubectl set image deployment/fastapi fastapi=$FULL_IMAGE -n $NAMESPACE
                       echo "Waiting for rollout to complete..."
-                      kubectl rollout status deployment/fastapi
+                      kubectl rollout status deployment/fastapi -n $NAMESPACE
                     '''
                 }
             }
