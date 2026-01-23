@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = "ghcr.io"
+        IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
+
+        IMAGE_TAG = "${BRANCH_NAME}-${GIT_COMMIT}"
+        FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+        NAMESPACE = "${BRANCH_NAME}"
+        DEPLOYMENT_NAME = "fastapi"
+        CONTAINER_NAME = "fastapi"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'ghcr-creds',
+                    usernameVariable: 'GH_USER',
+                    passwordVariable: 'GH_TOKEN'
+                )]) {
+                    sh '''
+                      echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                  docker build -t $FULL_IMAGE ./app
+                '''
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                  docker push $FULL_IMAGE
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(
+                    credentialsId: 'kubeconfig',
+                    variable: 'KUBECONFIG'
+                )]) {
+                    sh '''
+                      export PATH=$PATH:/usr/local/bin
+                      export KUBECONFIG=$KUBECONFIG
+
+                      echo "Updating deployment with new image..."
+                      kubectl set image deployment/fastapi fastapi=$FULL_IMAGE
+                      echo "Waiting for rollout to complete..."
+                      kubectl rollout status deployment/fastapi
+                    '''
+                }
+            }
+        }
+    }
+    when {
+        anyOf {
+            branch 'stage'
+            branch 'master'
+        }
+    }
+}
