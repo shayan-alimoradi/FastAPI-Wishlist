@@ -10,6 +10,16 @@ pipeline {
 
     stages {
 
+        stage('Debug Branch Info') {
+            steps {
+                sh '''
+                echo "BRANCH_NAME=$BRANCH_NAME"
+                echo "NAMESPACE=$NAMESPACE"
+                echo "IMAGE=$FULL_IMAGE"
+                '''
+            }
+        }
+
         stage('Validate Branch') {
             steps {
                 script {
