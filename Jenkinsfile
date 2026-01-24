@@ -4,8 +4,9 @@ pipeline {
     environment {
         REGISTRY = "ghcr.io"
         IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
-        IMAGE_TAG = "${GIT_COMMIT}"
-        FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+        DEPLOYMENT_NAME = "fastapi"
+        CONTAINER_NAME = "fastapi"
+        NAMESPACE = ""
     }
 
     stages {
@@ -13,6 +14,44 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Validate Branch') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME != 'stage' && env.BRANCH_NAME != 'master') {
+                        error "❌ This pipeline only runs for stage or master branches"
+                    }
+                }
+            }
+        }
+
+        stage('Set Environment') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        env.NAMESPACE = 'master'
+                        env.IMAGE_TAG = "master-${GIT_COMMIT}"
+                    }
+
+                    if (env.BRANCH_NAME == 'stage') {
+                        env.NAMESPACE = 'stage'
+                        env.IMAGE_TAG = "stage-${GIT_COMMIT}"
+                    }
+
+                    env.FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Debug Info') {
+            steps {
+                sh '''
+                echo "BRANCH_NAME=$BRANCH_NAME"
+                echo "NAMESPACE=$NAMESPACE"
+                echo "FULL_IMAGE=$FULL_IMAGE"
+                '''
             }
         }
 
@@ -53,13 +92,20 @@ pipeline {
                     variable: 'KUBECONFIG'
                 )]) {
                     sh '''
-                      export PATH=$PATH:/usr/local/bin
-                      export KUBECONFIG=$KUBECONFIG
+                    set -x
 
-                      echo "Updating deployment with new image..."
-                      kubectl set image deployment/fastapi fastapi=$FULL_IMAGE
-                      echo "Waiting for rollout to complete..."
-                      kubectl rollout status deployment/fastapi
+                    export KUBECONFIG=$KUBECONFIG
+                    export NAMESPACE="$NAMESPACE"
+                    export FULL_IMAGE="$FULL_IMAGE"
+
+                    echo "📍 NAMESPACE=$NAMESPACE"
+                    echo "📍 IMAGE=$FULL_IMAGE"
+
+                    kubectl get deployment fastapi -n "$NAMESPACE"
+
+                    kubectl set image deployment/fastapi fastapi="$FULL_IMAGE" -n "$NAMESPACE"
+
+                    kubectl rollout status deployment/fastapi -n "$NAMESPACE"
                     '''
                 }
             }
