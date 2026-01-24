@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = "ghcr.io"
+        IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
+        DEPLOYMENT_NAME = "fastapi"
+        CONTAINER_NAME = "fastapi"
+    }
+
+    stages {
+
+        stage('Debug Branch Info') {
+            steps {
+                sh '''
+                echo "BRANCH_NAME=$BRANCH_NAME"
+                echo "NAMESPACE=$NAMESPACE"
+                echo "IMAGE=$FULL_IMAGE"
+                '''
+            }
+        }
+
+        stage('Validate Branch') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME != 'stage' && env.BRANCH_NAME != 'master') {
+                        error "❌ This pipeline only runs for stage or master branches"
+                    }
+                }
+            }
+        }
+
+        stage('Set Environment') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        env.NAMESPACE = 'master'
+                        env.IMAGE_TAG = "master-${GIT_COMMIT}"
+                    }
+
+                    if (env.BRANCH_NAME == 'stage') {
+                        env.NAMESPACE = 'stage'
+                        env.IMAGE_TAG = "stage-${GIT_COMMIT}"
+                    }
+
+                    env.FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+                    echo "🟢 Environment: ${env.BRANCH_NAME}"
+                    echo "🟢 Namespace: ${env.NAMESPACE}"
+                    echo "🟢 Image: ${env.FULL_IMAGE}"
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'ghcr-creds',
+                    usernameVariable: 'GH_USER',
+                    passwordVariable: 'GH_TOKEN'
+                )]) {
+                    sh '''
+                      echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                  docker build -t $FULL_IMAGE ./app
+                '''
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                  docker push $FULL_IMAGE
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(
+                    credentialsId: 'kubeconfig',
+                    variable: 'KUBECONFIG'
+                )]) {
+                    sh '''
+                      export PATH=$PATH:/usr/local/bin
+                      export KUBECONFIG=$KUBECONFIG
+
+                      echo "🚀 Deploying to namespace: $NAMESPACE"
+                      kubectl set image deployment/fastapi fastapi=$FULL_IMAGE -n $NAMESPACE
+                      echo "Waiting for rollout to complete..."
+                      kubectl rollout status deployment/fastapi -n $NAMESPACE
+                    '''
+                }
+            }
+        }
+    }
+    when {
+        anyOf {
+            branch 'stage'
+            branch 'master'
+        }
+    }
+}
