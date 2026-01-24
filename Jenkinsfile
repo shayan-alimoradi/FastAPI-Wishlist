@@ -6,7 +6,6 @@ pipeline {
         IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
         DEPLOYMENT_NAME = "fastapi"
         CONTAINER_NAME = "fastapi"
-        NAMESPACE = ""
     }
 
     stages {
