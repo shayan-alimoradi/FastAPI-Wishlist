@@ -92,18 +92,20 @@ pipeline {
                     variable: 'KUBECONFIG'
                 )]) {
                     sh '''
+                    set -x
+
                     export KUBECONFIG=$KUBECONFIG
+                    export NAMESPACE="$NAMESPACE"
+                    export FULL_IMAGE="$FULL_IMAGE"
 
-                    echo "📍 Current context:"
-                    kubectl config get-contexts
+                    echo "📍 NAMESPACE=$NAMESPACE"
+                    echo "📍 IMAGE=$FULL_IMAGE"
 
-                    echo "📍 Deploying to namespace: $NAMESPACE"
+                    kubectl get deployment fastapi -n "$NAMESPACE"
 
-                    kubectl get deployment fastapi -n $NAMESPACE
+                    kubectl set image deployment/fastapi fastapi="$FULL_IMAGE" -n "$NAMESPACE"
 
-                    kubectl set image deployment/fastapi fastapi=$FULL_IMAGE -n $NAMESPACE
-
-                    kubectl rollout status deployment/fastapi -n $NAMESPACE
+                    kubectl rollout status deployment/fastapi -n "$NAMESPACE"
                     '''
                 }
             }
