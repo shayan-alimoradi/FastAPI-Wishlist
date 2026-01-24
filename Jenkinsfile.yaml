@@ -6,6 +6,7 @@ pipeline {
         IMAGE_NAME = "shayan-alimoradi/fastapi-wishlist"
         DEPLOYMENT_NAME = "fastapi"
         CONTAINER_NAME = "fastapi"
+        NAMESPACE = ""
     }
 
     stages {
@@ -40,10 +41,6 @@ pipeline {
                     }
 
                     env.FULL_IMAGE = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-
-                    echo "🟢 Environment: ${env.BRANCH_NAME}"
-                    echo "🟢 Namespace: ${env.NAMESPACE}"
-                    echo "🟢 Image: ${env.FULL_IMAGE}"
                 }
             }
         }
